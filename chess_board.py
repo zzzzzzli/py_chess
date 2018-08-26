@@ -1,4 +1,5 @@
 from graphics import *
+import time
 
 class Piece:
     def __init__(self,circle,color,location,user):
@@ -37,6 +38,7 @@ def addPiece(player,center):
     user = getPiecePlayer(color)
     piece = Piece(cir,color,getPieceLocation(center),user)
     pieces[user].append(piece)
+    gun(piece)
     return piece
 
 def getLocationFromMouse(mouse):
@@ -89,11 +91,8 @@ def isLocationValid(mouse):
 
 def getPieceFromLocation(loc):
     for user in range(2):
-     #   print(len(pieces[user]))
         for piece in pieces[user]:
-         #   print(str(piece.location)+', '+str(loc))
             if piece.location == loc:
-               # print(pieces[user].index(piece))
                 return piece
     return None
 
@@ -246,18 +245,26 @@ def isInSquare(piece):
 
 def isAline(piece):
     x,y = piece.location
+    x1, y1 = 0, 0
     for i in range(10):
-        l1 = (i,y)
-        l2 = (x,i)
-        for l in [l1,l2]:
-            p = getPieceFromLocation(l)
-            if p==None:
-                return 0
-            elif p.user!=piece.user:
-                return 0
-            else:
-                pass
-    return 1
+        p1 = getPieceFromLocation((i,y))
+        p2 = getPieceFromLocation((x,i))
+        if p1 != None:
+            x1 += p1.user==piece.user
+        if p2 != None:
+            y1 += p2.user==piece.user
+    if x1 == size or y1 == size:
+        return 1
+    else:
+        return 0
+
+def deletablePiece(user):
+    piece = []
+    for p in pieces[user]:
+        if not isInSquare(p):
+            piece.append(p)
+    return piece
+
 
 def deletePiece(piece):
     piece.circle.undraw()
@@ -271,17 +278,120 @@ def deletePiece(piece):
             
 def selectPieceToDelete(user):
     loc = getPieceLocation(getLocationFromMouse(win.getMouse()))
-    print(loc)
     p = getPieceFromLocation(loc)
     while p == None or bool(sum(isInSquare(p))) or p.user==user:
-        print("an invalid piece to delete, please select another")
-        print(p)
-        if p!=None:
-            print(str(p.user)+','+str(user))
-            print(isInSquare(p))
+        print("\tan invalid piece to delete, please select another")
+#        if p!=None:
+#            print(str(p.user)+','+str(user))
+#            print(isInSquare(p))
         loc = getPieceLocation(getLocationFromMouse(win.getMouse()))
         p = getPieceFromLocation(loc)
     return p
+
+def deletablePieces(user):
+    px = []
+    for p in pieces[user]:
+        if not sum(isInSquare(p))!=0:
+            px.append(p)
+    return px
+
+def gun(piece):
+    user=piece.user
+    (x,y)=piece.location
+    u=0
+    while True:
+        # up
+        p=getPieceFromLocation((x,y-1-u))
+        if p!=None:
+            if p.user == user:
+                u += 1
+            else:
+                break
+        else:
+            break
+    d=0
+    while True:
+        # down
+        p=getPieceFromLocation((x,y+1+d))
+        if p!=None:
+            if p.user== user:
+                d += 1
+            else:
+                break
+        else:
+            break
+    k = u + d + 1
+    todel1 = []
+    todel2 = []
+    if k>1 and k<=size//2:
+        for i in range(k):
+            p1 = getPieceFromLocation((x,y-1-u-i))
+            todel1.append(p1)
+            p2 = getPieceFromLocation((x,y+1+d+i))
+            todel2.append(p2)
+    ################################################
+
+    l=0
+    while True:
+        # left
+        p=getPieceFromLocation((x-1-l,y))
+        if p!=None:
+            if p.user == user:
+                l += 1
+            else:
+                break
+        else:
+            break
+    r=0
+    while True:
+        # right
+        p=getPieceFromLocation((x+1+r,y))
+        if p!=None:
+            if p.user== user:
+                r += 1
+            else:
+                break
+        else:
+            break
+    k = l + r + 1
+    todel3 = []
+    todel4 = []
+    if k>1 and k<=size//2:
+        for i in range(k):
+            p1 = getPieceFromLocation((x-1-l-i,y))
+            todel3.append(p1)
+            p2 = getPieceFromLocation((x+1+r+i,y))
+            todel4.append(p2)
+    todel = []
+    for dellist in [todel1,todel2,todel3,todel4]:
+        if len(dellist)>0:
+            isdel = True
+            for p1 in dellist:
+                if p1 == None:
+                    isdel = False
+                    break
+                else:
+                    if p1.user == user:
+                        isdel = False
+                        break
+            if isdel == True:
+                todel += dellist
+    if len(todel)>1:
+        for p1 in todel:
+            p1.circle.setFill('red')
+            p1.circle.setOutline('red')
+        time.sleep(0.5)
+        for p1 in todel:
+            p1.circle.setFill(players[1 if user==0 else 0])
+            p1.circle.setOutline(players[1 if user==0 else 0])
+        time.sleep(0.5)
+        for p1 in todel:
+            p1.circle.setFill('red')
+            p1.circle.setOutline('red')
+        time.sleep(0.5)
+        for p1 in todel:
+            deletePiece(p1)
+
 
 
 pts = 30
@@ -293,17 +403,46 @@ pieces = [[],[]]
 
 while True:
     for user in range(2):
-        mouse = win.getMouse()
-        while not isLocationValid(mouse):
+        print(players[user]+' please:')
+        while True:
             mouse = win.getMouse()
+            if isLocationValid(mouse):
+                break
         piece = addPiece(user,getLocationFromMouse(mouse))
-      #  print('location: '+str(piece.location)+', player: '+str(user))
-      #  print(str(isInSquare(piece)))
-        n = sum(isInSquare(piece))+isAline(piece)
-#        for i in range(n):
-#            print("Plise select "+str(n)+" pieces of opponent to delete")
-#            p = selectPieceToDelete(user)
-#            deletePiece(p)
+        sq = sum(isInSquare(piece))
+        le = isAline(piece)
+        print('\tlocation: '+str(piece.location))
+        print('\tis square' if sq != 0 else '\tis not square')
+        print('\tis a line 'if le != 0 else '\tis not a line')
+        n = sq + le
+        if n>0:
+            print('\tyou can put another '+str(n)+(' pieces' if n>1 else ' piece'))
+            i=0
+            while i<n:
+                while True:
+                    mouse = win.getMouse()
+                    if isLocationValid(mouse):
+                        break
+                piece = addPiece(user,getLocationFromMouse(mouse))
+                i = i +1
+                i = i - (sum(isInSquare(piece)) + isAline(piece))
+                if n-i>0:
+                    print('\tput another '+str(n-i)+(' pieces' if (n-i)>1 else ' piece'))
+                
+        
+#        user2 = 1 if user==0 else 1
+#        delpieces=deletablePieces(user2)
+#        num = len(delpieces)
+#        n=min(sq+le,num)
+#        if n>0:
+#            if num==0:
+#                print('\topponent has no piece to eat')
+#            else:
+#                print('\tyou have '+str(n)+' opponent pieces to eat')
+#                for i in range(n):
+#                     print('\tthe '+str(i+1))
+#                     p = selectPieceToDelete(user)
+#                     deletePiece(p)
         
                 
     if len(pieces[0])+len(pieces[1])==size**2:
