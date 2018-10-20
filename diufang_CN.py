@@ -2,15 +2,69 @@ from graphics import *
 import time
 
 class Piece:
+    '''
+    定义一个棋子类，具有颜色、圆圈、位置和用户等属性，同时可以进行移动操作
+    '''
     def __init__(self,circle,color,location,user):
         self.circle = circle
         self.color = color
         self.location = location
         self.user = user
-        
+    def Move(self):
+        circle = self.circle
+        location = self.location
+        center = circle.getCenter()
+        while True:
+            mouse = win.getMouse()
+            m_location = getPieceLocation(getLocationFromMouse(mouse))
+            if m_location == location:
+                return 0
+            x_loc,y_loc = m_location[0] , m_location[1]
+            x_pie,y_pie = location[0] , location[1]
+            if getPieceFromLocation(m_location) != None:
+                continue
+            if x_loc != x_pie and y_loc != y_pie:
+                print('    不能同时移动两个方向：'+str(location)+','+str(m_location))
+                continue
+            elif y_loc == y_pie:
+                a = 0
+                mid_n = abs(x_loc - x_pie) - 1
+                mid_loc = [x+1+min(x_loc,x_pie) for x in range(mid_n+1)]
+                for x_mid in mid_loc[0:mid_n]:
+                    if piece_pan[x_mid][y_loc] != -1:
+                    #    print(piece_pan[x_mid][y_mid])
+                        print('    不能跨越其他棋子走棋或走棋位置与其他棋子重叠：'+str(location)+','+str(m_location))
+                        a = 1
+                        break
+                if a == 1:
+                    continue
+            elif x_loc == x_pie:
+                a = 0
+                mid_n = abs(y_loc - y_pie) - 1
+                mid_loc = [x+1+min(y_loc,y_pie) for x in range(mid_n+1)]
+                for y_mid in mid_loc[0:mid_n]:
+                    if piece_pan[x_loc][y_mid] != -1:
+                        print('    不能跨越其他棋子走棋或走棋位置与其他棋子重叠：'+str(location)+','+str(m_location))
+                        a = 1
+                        break
+                if a == 1:
+                    continue
+            break
+        x,y = (x_loc - x_pie)*pts , (y_loc - y_pie)*pts
+        self.circle.move(x,y)
+        piece_pan[x_pie][y_pie] = -1
+        piece_pan[x_loc][y_loc] = self.user
+        self.location = m_location
+        circle.setOutline(players[self.user])
+        print("    移动："+str(location)+"-->"+str(m_location))
+        gun(self)
+        return 1
 
 def chessBoard(size):
-    win = GraphWin('chess_board',size*pts+2.25*pts,size*pts)
+    '''
+    画一张棋盘
+    '''
+    win = GraphWin('丢方',size*pts+2.25*pts,size*pts)
     win.setBackground('#CD853F')
     for i in range(size):
         x_line = Line(Point(0+pts/2,i*pts+pts/2),Point((size-1)*pts+pts/2,i*pts+pts/2))
@@ -35,13 +89,17 @@ def addPiece(player,center):
     cir.setFill(color)
     cir.setOutline(color)
     cir.draw(win)
-    user = getPiecePlayer(color)
-    piece = Piece(cir,color,getPieceLocation(center),user)
-    pieces[user].append(piece)
+    loc = getPieceLocation(center)
+    piece = Piece(cir,color,loc,player)
+    pieces[player].append(piece)
+    piece_pan[loc[0]][loc[1]] = player
     gun(piece)
     return piece
 
 def getLocationFromMouse(mouse):
+    '''
+    通过鼠标点击的位置得到距离其最近的棋盘坐标的像素坐标
+    '''
     l = []
     for n in [mouse.x,mouse.y]:
         a = n//pts
@@ -56,12 +114,18 @@ def getLocationFromMouse(mouse):
     return point
 
 def getPieceLocation(p):
+    '''
+    通过棋盘坐标的像素坐标得到真正的棋盘坐标
+    '''
     l = []
     for x in [p.x,p.y]:
         l.append(int((x-pts/2)//pts))
     return tuple(l)
 
 def getPiecePlayer(color):
+    '''
+    通过棋子颜色得到该棋子的用户
+    '''
     if color == 'black':
         return 0
     elif color == 'white':
@@ -70,6 +134,9 @@ def getPiecePlayer(color):
         return 'unknown'
 
 def isLocationValid(mouse):
+    '''
+    判断鼠标所点击的地方可不可以下棋子，是否超出坐标范围，在该位置是否已经有一颗棋子
+    '''
     if mouse.x>=(size)*pts:
         return False
     c = getPieceLocation(getLocationFromMouse(mouse))
@@ -79,17 +146,11 @@ def isLocationValid(mouse):
                 return False
     return True
 
-#def ifreput(m):
-#    if m.x > (size+1)*pts-3*pts/4 and m.x < (size+1)*pts+3*pts/4 and m.y > 5*pts/8 and m.y < 11*pts/8:
-#        return True
-#    else:
-#        return False
-
-#def reput(user,np):
-#    c = pieces[user][-1].circle.getCenter()
-#    pieces[user][-1].circle.move(np.x-c.x,np.y-c.y)
 
 def getPieceFromLocation(loc):
+    '''
+    通过坐标得到该位置的棋子，如果不存在返回NONE
+    '''
     for user in range(2):
         for piece in pieces[user]:
             if piece.location == loc:
@@ -98,6 +159,9 @@ def getPieceFromLocation(loc):
 
 
 def isInSquare(piece):
+    '''
+    判断棋子是否与周围的棋子形成方，周围每一个棋子都要加入判断
+    '''
     x,y = piece.location[0],piece.location[1]
     user = piece.user
     neb = [
@@ -244,6 +308,9 @@ def isInSquare(piece):
                 return 0,0
 
 def isAline(piece):
+    '''
+    判断一颗棋子是不是形成一整行
+    '''
     x,y = piece.location
     x1, y1 = 0, 0
     for i in range(10):
@@ -258,44 +325,52 @@ def isAline(piece):
     else:
         return 0
 
-def deletablePiece(user):
-    piece = []
-    for p in pieces[user]:
-        if not isInSquare(p):
-            piece.append(p)
-    return piece
-
-
 def deletePiece(piece):
+    '''
+    删掉一颗棋子
+    '''
     piece.circle.undraw()
     u = piece.user
+    loc = piece.location
     i=0
     for x in pieces[u]:
-        if x.location==piece.location:
+        if x.location==loc:
             del pieces[u][i]
+            piece_pan[loc[0]][loc[1]] = -1
             return
         i += 1
             
 def selectPieceToDelete(user):
-    loc = getPieceLocation(getLocationFromMouse(win.getMouse()))
-    p = getPieceFromLocation(loc)
-    while p == None or bool(sum(isInSquare(p))) or p.user==user:
-        print("\tan invalid piece to delete, please select another")
-#        if p!=None:
-#            print(str(p.user)+','+str(user))
-#            print(isInSquare(p))
+    '''
+    由user为对方选择一颗棋子待删
+    '''
+    while True:
         loc = getPieceLocation(getLocationFromMouse(win.getMouse()))
         p = getPieceFromLocation(loc)
+        if p != None:
+            if not bool(sum(isInSquare(p))) and p.user != user:
+                break
+            else:
+                print("    选择错误，请重新选择")
+        else:
+            print("    NONE")
+    print("    选择删除"+str(p.location))
     return p
-
+    
 def deletablePieces(user):
-    px = []
+    '''
+    查看以下user还有多少颗可以被吃掉的棋子
+    '''
+    x = 0
     for p in pieces[user]:
-        if not sum(isInSquare(p))!=0:
-            px.append(p)
-    return px
+        if sum(isInSquare(p))==0:
+            x += 1
+    return x
 
 def gun(piece):
+    '''
+    枪，每下一颗棋子，枪就会运行，以打掉需要打掉的棋子，如果不需要打掉对方棋子就不做任何操作
+    '''
     user=piece.user
     (x,y)=piece.location
     u=0
@@ -379,84 +454,205 @@ def gun(piece):
                 if dellist[nu-1].user != user:
                     isdel = False
             if isdel == True:
-                print('\t'+str(nu-1)+'-tar gun')
+                print('    '+str(nu-1)+' 枪')
                 todel += dellist[0:nu-1]
+
+    # 用枪打掉对方棋子的动画
     if len(todel)>1:
         for p1 in todel:
             p1.circle.setFill('red')
             p1.circle.setOutline('red')
-        time.sleep(0.5)
+        time.sleep(0.25)
         for p1 in todel:
             p1.circle.setFill(players[1 if user==0 else 0])
             p1.circle.setOutline(players[1 if user==0 else 0])
-        time.sleep(0.5)
+        time.sleep(0.25)
         for p1 in todel:
             p1.circle.setFill('red')
             p1.circle.setOutline('red')
-        time.sleep(0.5)
+        time.sleep(0.25)
         for p1 in todel:
             deletePiece(p1)
 
+def isFull():
+    '''
+    判断棋盘是否已满
+    '''
+    n = len(pieces[0]) + len(pieces[1])
+    if n < size**2:
+        return False
+    else:
+        return True
 
+def ifSomeoneWin():
+    '''
+    判断是否结束游戏，即任意一个玩家的棋子数目为零
+    '''
+    n0 = len(pieces[0])
+    n1 = len(pieces[1])
+    iswin = False
+    winner = -1
+    if n0*n1==0:
+        iswin = True
+    if n0 == 0:
+        winner = 1
+    else:
+        winner = 0
+    return iswin,winner
 
-pts = 50
-size = 10
-piece_radius = 3*pts//8
-players={0:'black',1:'white'}
-win = chessBoard(size)
-pieces = [[],[]]
+def isMovable(user):
+    '''
+    判断用户是否还有可以移动的棋子
+    '''
+    ismovable = 0
+    for p in pieces[user]:
+        x,y = p.location
+        for loc in [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]:
+            if loc[0] < 0 or loc[1] < 0 or loc[0] >= size or loc[1] >= size:
+                continue
+            p0 = getPieceFromLocation(loc)
+            
+            if p0 == None:
+                ismovable = 1
+                break
+        if ismovable ==1:
+            break
+    return ismovable
 
-while True:
-    for user in range(2):
-        print(players[user]+' please:')
+def main():
+    '''
+    ------------------------------------------------------------
+    |                    第一阶段，落子阶段                    |
+    ------------------------------------------------------------
+    '''
+    first_square = -1
+    print('开始下棋')
+    user = 0
+    while True:
+        print(('黑' if user==0 else '白')+'请:')
+        if isFull():
+            break
         while True:
             mouse = win.getMouse()
             if isLocationValid(mouse):
                 break
         piece = addPiece(user,getLocationFromMouse(mouse))
+    
         sq = sum(isInSquare(piece))
         le = isAline(piece)
-        print('\tlocation: '+str(piece.location))
-        print('\tis square' if sq != 0 else '\tis not square')
-        print('\tis a line 'if le != 0 else '\tis not a line')
+        if first_square==-1:
+            if sq!=0:
+                first_square = user
+        print('    位置: '+str(piece.location))
+        print('    成方' if sq != 0 else '    未成方')
+        print('    成行' if le != 0 else '    未成行')
         n = sq + le
-        if n>0:
-            print('\tyou can put another '+str(n)+(' pieces' if n>1 else ' piece'))
-            i=0
-            while i<n:
-                while True:
-                    mouse = win.getMouse()
-                    if isLocationValid(mouse):
+
+        if isFull():
+            break
+        else:
+            if n>0:
+                print('    请继续下 '+str(n)+' 颗棋子')
+                i=0
+                while i<n:
+                    if isFull():
                         break
-                piece = addPiece(user,getLocationFromMouse(mouse))
-                i = i +1
-                i = i - (sum(isInSquare(piece)) + isAline(piece))
-                if n-i>0:
-                    print('\tput another '+str(n-i)+(' pieces' if (n-i)>1 else ' piece'))
-                
-        
-#        user2 = 1 if user==0 else 1
-#        delpieces=deletablePieces(user2)
-#        num = len(delpieces)
-#        n=min(sq+le,num)
-#        if n>0:
-#            if num==0:
-#                print('\topponent has no piece to eat')
-#            else:
-#                print('\tyou have '+str(n)+' opponent pieces to eat')
-#                for i in range(n):
-#                     print('\tthe '+str(i+1))
-#                     p = selectPieceToDelete(user)
-#                     deletePiece(p)
-        
-                
-    if len(pieces[0])+len(pieces[1])==size**2:
-        for a in range(size**2):
-            for u in range(2):
-                print(u)
-                deletePiece(selectPieceToDelete(u))
-        break
-win.getMouse()
+                    while True:
+                        mouse = win.getMouse()
+                        if isLocationValid(mouse):
+                            break
+                    piece = addPiece(user,getLocationFromMouse(mouse))
+                    i = i + 1
+                    i = i - (sum(isInSquare(piece)) + isAline(piece))
+                    if n-i>0:
+                        print('    请继续下 '+str(n-i)+' 颗棋子')
+        user = user ^ 1
+    '''
+    -------------------------------------------------------------------
+    |                       第二阶段，走子阶段                        |
+    -------------------------------------------------------------------
+    '''
+    print('双方各先吃掉对方一颗未成方的棋子')
+    if first_square == -1:
+        first_square = 0
+    iswin = 0
+    for user in [first_square,first_square ^ 1]:
+        print(('黑' if user==0 else '白')+'请:')
+        user2 = 1 if user==0 else 1
+        num = deletablePieces(user2)
+        if num==0:
+            iswin = 1
+            print("黑棋获胜" if user2==0 else "白棋获胜")
+            break
+        else:
+            p = selectPieceToDelete(user)
+            deletePiece(p)
+    if iswin ==1:
+        return
+
+    print('开始走棋')
+    user = first_square
+    while True:
+        user2 = user ^ 1
+        print(('黑' if user==0 else '白')+'请:')
+        if isMovable(user)<1:
+            print("黑棋获胜" if user2==0 else "白棋获胜")
+            break
+        while True:
+            mouse = win.getMouse()
+            loc = getPieceLocation(getLocationFromMouse(mouse))
+            piece = getPieceFromLocation(loc)
+            if piece == None:
+                continue
+            else:
+                if piece.user != user:
+                    print('    不能移动对方的棋子')
+                    continue
+            piece.circle.setOutline('red')
+            if piece.Move()==0:
+                piece.circle.setOutline(players[user])
+                continue
+            else:
+                break
+        sq = sum(isInSquare(piece))
+        le = isAline(piece)
+        print('    成方' if sq != 0 else '    未成方')
+        print('    成行' if le != 0 else '    未成行')
+        num=deletablePieces(user2)
+        n=min(sq+le,num)
+        if n>0:
+            if num==0:
+                print('    对方没有可以吃掉的棋子')
+            else:
+                print('    请吃掉对方 '+str(n)+' 颗棋子')
+                for i in range(n):
+                    print('    第 '+str(i+1)+' 颗')
+                    p = selectPieceToDelete(user)
+                    deletePiece(p)
+        iswin , winner = ifSomeoneWin()
+        if iswin:
+            print('黑棋获胜' if winner==0 else '白棋获胜')
+            break
+        user = user ^ 1
+
+
+# 设置棋盘大小以及棋子大小参数
+pts = 50
+size = 4
+piece_radius = 3*pts//8
+players={0:'black',1:'white'}
+ 
+# 主程序
+while True:
+    win = chessBoard(size)
+    pieces = [[],[]]
+    piece_pan = [[-1 for x in range(size)] for x in range(size)]
+    main()
+    print("在棋盘任意位置点击鼠标继续")
+    win.getMouse()
+    win.close()
+
+
 
 
 
