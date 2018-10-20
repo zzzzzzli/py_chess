@@ -2,6 +2,9 @@ from graphics import *
 import time
 
 class Piece:
+    '''
+    定义一个棋子类，具有颜色、圆圈、位置和用户等属性，同时可以进行移动操作
+    '''
     def __init__(self,circle,color,location,user):
         self.circle = circle
         self.color = color
@@ -58,6 +61,9 @@ class Piece:
         return 1
 
 def chessBoard(size):
+    '''
+    画一张棋盘
+    '''
     win = GraphWin('丢方',size*pts+2.25*pts,size*pts)
     win.setBackground('#CD853F')
     for i in range(size):
@@ -83,7 +89,6 @@ def addPiece(player,center):
     cir.setFill(color)
     cir.setOutline(color)
     cir.draw(win)
-#    user = getPiecePlayer(color)
     loc = getPieceLocation(center)
     piece = Piece(cir,color,loc,player)
     pieces[player].append(piece)
@@ -92,6 +97,9 @@ def addPiece(player,center):
     return piece
 
 def getLocationFromMouse(mouse):
+    '''
+    通过鼠标点击的位置得到距离其最近的棋盘坐标的像素坐标
+    '''
     l = []
     for n in [mouse.x,mouse.y]:
         a = n//pts
@@ -106,12 +114,18 @@ def getLocationFromMouse(mouse):
     return point
 
 def getPieceLocation(p):
+    '''
+    通过棋盘坐标的像素坐标得到真正的棋盘坐标
+    '''
     l = []
     for x in [p.x,p.y]:
         l.append(int((x-pts/2)//pts))
     return tuple(l)
 
 def getPiecePlayer(color):
+    '''
+    通过棋子颜色得到该棋子的用户
+    '''
     if color == 'black':
         return 0
     elif color == 'white':
@@ -120,6 +134,9 @@ def getPiecePlayer(color):
         return 'unknown'
 
 def isLocationValid(mouse):
+    '''
+    判断鼠标所点击的地方可不可以下棋子，是否超出坐标范围，在该位置是否已经有一颗棋子
+    '''
     if mouse.x>=(size)*pts:
         return False
     c = getPieceLocation(getLocationFromMouse(mouse))
@@ -129,17 +146,11 @@ def isLocationValid(mouse):
                 return False
     return True
 
-#def ifreput(m):
-#    if m.x > (size+1)*pts-3*pts/4 and m.x < (size+1)*pts+3*pts/4 and m.y > 5*pts/8 and m.y < 11*pts/8:
-#        return True
-#    else:
-#        return False
-
-#def reput(user,np):
-#    c = pieces[user][-1].circle.getCenter()
-#    pieces[user][-1].circle.move(np.x-c.x,np.y-c.y)
 
 def getPieceFromLocation(loc):
+    '''
+    通过坐标得到该位置的棋子，如果不存在返回NONE
+    '''
     for user in range(2):
         for piece in pieces[user]:
             if piece.location == loc:
@@ -148,6 +159,9 @@ def getPieceFromLocation(loc):
 
 
 def isInSquare(piece):
+    '''
+    判断棋子是否与周围的棋子形成方，周围每一个棋子都要加入判断
+    '''
     x,y = piece.location[0],piece.location[1]
     user = piece.user
     neb = [
@@ -294,6 +308,9 @@ def isInSquare(piece):
                 return 0,0
 
 def isAline(piece):
+    '''
+    判断一颗棋子是不是形成一整行
+    '''
     x,y = piece.location
     x1, y1 = 0, 0
     for i in range(10):
@@ -309,6 +326,9 @@ def isAline(piece):
         return 0
 
 def deletePiece(piece):
+    '''
+    删掉一颗棋子
+    '''
     piece.circle.undraw()
     u = piece.user
     loc = piece.location
@@ -321,6 +341,9 @@ def deletePiece(piece):
         i += 1
             
 def selectPieceToDelete(user):
+    '''
+    由user为对方选择一颗棋子待删
+    '''
     while True:
         loc = getPieceLocation(getLocationFromMouse(win.getMouse()))
         p = getPieceFromLocation(loc)
@@ -335,6 +358,9 @@ def selectPieceToDelete(user):
     return p
     
 def deletablePieces(user):
+    '''
+    查看以下user还有多少颗可以被吃掉的棋子
+    '''
     x = 0
     for p in pieces[user]:
         if sum(isInSquare(p))==0:
@@ -342,6 +368,9 @@ def deletablePieces(user):
     return x
 
 def gun(piece):
+    '''
+    枪，每下一颗棋子，枪就会运行，以打掉需要打掉的棋子，如果不需要打掉对方棋子就不做任何操作
+    '''
     user=piece.user
     (x,y)=piece.location
     u=0
@@ -427,6 +456,8 @@ def gun(piece):
             if isdel == True:
                 print('    '+str(nu-1)+' 枪')
                 todel += dellist[0:nu-1]
+
+    # 用枪打掉对方棋子的动画
     if len(todel)>1:
         for p1 in todel:
             p1.circle.setFill('red')
@@ -444,13 +475,19 @@ def gun(piece):
             deletePiece(p1)
 
 def isFull():
+    '''
+    判断棋盘是否已满
+    '''
     n = len(pieces[0]) + len(pieces[1])
     if n < size**2:
         return False
     else:
         return True
 
-def isSomeoneWin():
+def ifSomeoneWin():
+    '''
+    判断是否结束游戏，即任意一个玩家的棋子数目为零
+    '''
     n0 = len(pieces[0])
     n1 = len(pieces[1])
     iswin = False
@@ -464,6 +501,9 @@ def isSomeoneWin():
     return iswin,winner
 
 def isMovable(user):
+    '''
+    判断用户是否还有可以移动的棋子
+    '''
     ismovable = 0
     for p in pieces[user]:
         x,y = p.location
@@ -477,7 +517,6 @@ def isMovable(user):
                 break
         if ismovable ==1:
             break
-    print('    '+str(ismovable))
     return ismovable
 
 def main():
@@ -590,40 +629,28 @@ def main():
                     print('    第 '+str(i+1)+' 颗')
                     p = selectPieceToDelete(user)
                     deletePiece(p)
-        iswin , winner = isSomeoneWin()
+        iswin , winner = ifSomeoneWin()
         if iswin:
             print(('黑棋' if winner==0 else '白棋')+'获胜')
             break
         user = user ^ 1
 
 
-#        '''
-#        -----------------------------------------------------------------
-#        |                         清空棋盘                              |
-#        -----------------------------------------------------------------
-#        '''
-#    for piece in pieces[winner]:
-#        deletePiece(piece)
-#
-#win.getMouse()
-
+# 设置棋盘大小以及棋子大小参数
 pts = 50
-size = 6
+size = 4
 piece_radius = 3*pts//8
 players={0:'black',1:'white'}
-win = chessBoard(size)
-pieces = [[],[]]
-piece_pan = [[-1 for x in range(size)] for x in range(size)]
  
+# 主程序
 while True:
-    print(str(pieces))
-    print(str(piece_pan))
+    win = chessBoard(size)
+    pieces = [[],[]]
+    piece_pan = [[-1 for x in range(size)] for x in range(size)]
     main()
-    for user in range(2):
-        for piece in pieces[user]:
-            print(piece.user)
-            print(piece.color)
-            deletePiece(piece)
+    print("在棋盘任意位置点击鼠标继续")
+    win.getMouse()
+    win.close()
 
 
 
